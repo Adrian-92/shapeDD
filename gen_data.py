@@ -1,5 +1,4 @@
 import numpy as np
-import shape as shape
 
 ##TODO: This is all a bit dirty... FIXME
 
