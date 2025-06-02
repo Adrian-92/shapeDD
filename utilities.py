@@ -3,17 +3,15 @@ from sklearn.metrics.pairwise import pairwise_kernels as apply_kernel
 
 
 # copied from fhinder
-def gen_window_matrix(l1, l2, n_perm, cache=None):
-    if cache is None:
-        cache = dict()
+def gen_window_matrix(l1, l2, n_perm, cache=dict()):
     if (l1, l2, n_perm) not in cache.keys():
-        w = np.array(l1 * [1. / l1] + l2 * [-1. / l2])
+        w = np.array(l1 * [1. / l1] + (l2) * [-1. / (l2)])
         W = np.array([w] + [np.random.permutation(w) for _ in range(n_perm)])
         cache[(l1, l2, n_perm)] = W
     return cache[(l1, l2, n_perm)]
 
 
-def mmd(X, s=None, n_perm=1000):
+def mmd(X, s=None, n_perm=2500):
     K = apply_kernel(X, metric="rbf")
     if s is None:
         s = int(X.shape[0] / 2)

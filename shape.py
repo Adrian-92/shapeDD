@@ -2,6 +2,10 @@ import numpy as np
 from utilities import mmd
 
 
+def permutation_test(data):
+    pass
+
+
 class shape:
     def w_i(self, i: int):
         """
@@ -10,7 +14,7 @@ class shape:
             index of the oldest element
         """
         w = np.ones((self.m))
-        max_index = i + self.m // 2  # check middle
+        max_index = i + self.m // 2
         if max_index >= self.m:
             w[i:] = -1
             w[:max_index - self.m] = -1
@@ -22,7 +26,7 @@ class shape:
         raise NotImplementedError("Should be overwritten by the subclass!")
 
 
-class ShapeOnline(shape):
+class shape_online(shape):
     def __init__(self, data, f, n_perm=1000):
         """
         Initialize the online shape instance. Used for tracking states, which do not need to be updated each step
@@ -34,8 +38,8 @@ class ShapeOnline(shape):
         """
         m, _ = data.shape
         self.m = m  # number of saves elements
-        self.K = np.zeros((m, m))  # kernel matrix
-        self.prod = np.zeros(m)  # K @ w_i
+        self.kernel_desc = np.zeros((m, m))  # kernel matrix
+        self.prod = np.zeros((m))  # K @ w_i
         self.f = f  # kernel function
         self.i = 0  # index of the oldest element
         self.data = data  # saved data points
@@ -43,40 +47,38 @@ class ShapeOnline(shape):
         self.shape = []
         self.n_perm = n_perm  # Number of Permutations for the independence test
         self.drift_localized = []  # Saved points (according to number of data point, including the initial)
-        # added mmd-value and p-value to this list
-        # first entry is position, second is mmd-value, third is p-value
-        self.debug = 0
+        # contains position, mmd-value and p-value of possible location
 
         # fill the initial values of the kernel matrix
         for i in range(m):
             for j in range(m):
-                self.K[i, j] = f(data[i], data[j])
-        self.prod = self.K @ self.w_i(self.i)
+                self.kernel_desc[i, j] = f(data[i], data[j])
+        self.prod = self.kernel_desc @ self.w_i(self.i)
         self.stat.append(self.w_i(self.i) @ self.prod)
 
     # add new data point. Relevant for the online-scenario
     def update(self, x):
         new_i = (self.i + 1) % self.m
-        max_index = (self.i + self.m // 2) % self.m  # the upper bound is exclusive
+        max_index = (self.i + self.m // 2) % self.m  # calculate, where the last "-1" w_i is located
 
-        # remove old values of prod, update perform update from w_i to w_{i + 1}
-        self.prod = self.prod + self.K[self.i, :] - 2 * self.K[max_index, :]  # K @ w
+        # update as described in step 1.1 is executed, avoid adding self.K[self.i,:] twice, which would dbe subtracted in the next update step
+        self.prod = self.prod + self.kernel_desc[self.i, :] - 2 * self.kernel_desc[max_index, :]
 
-        self.data[self.i] = x
         # calculate new kernel matrix
         # self.i is the oldest value, they need to be updated
+        self.data[self.i] = x
         for j in range(self.m):
-            self.K[self.i, j] = self.f(self.data[self.i], self.data[j])
-        self.K[:, self.i] = self.K[self.i, :]
+            self.kernel_desc[self.i, j] = self.f(self.data[self.i], self.data[j])
+        self.kernel_desc[:, self.i] = self.kernel_desc[self.i, :]
 
-        self.prod = self.prod + self.K[self.i, :]  # w_i(i + i)[i] = 1
-        # and update the new column
-        self.prod[self.i] = self.K[self.i, :].T @ self.w_i(new_i)  # K @ w^i+1
+        # Add the new kernel-row to the matrix, as described in 1.2
+        self.prod += self.kernel_desc[self.i,
+                     :]  # Add M by subtracting the (never added) old kernel value and add the new kernel value
+        self.prod[self.i] = self.kernel_desc[self.i, :].T @ self.w_i(new_i)  # recalculate row i
 
         self.i = new_i
         self.stat.append(self.w_i(self.i).T @ self.prod)
 
-        self.debug += len(self.stat)
         if len(self.stat) < self.m:
             return None
 
@@ -88,13 +90,10 @@ class ShapeOnline(shape):
         # Test, if shape predicts a drift localization
         if self.shape[-1] * self.shape[-2] < 0:
             if self.shape[-1] > 0:
-                print('testing iterative')
-                result = mmd(np.concatenate([self.data[self.i:], self.data[:self.i]], axis=0), self.m // 2, self.n_perm)
-                # added mmd_result for output
-                # first entry is position, second is mmd-value, third is p-value
-                self.drift_localized.append((len(self.shape),) + result)
-                return result
-
+                mmd_result = mmd(np.concatenate([self.data[self.i:], self.data[:self.i]], axis=0), self.m // 2,
+                                 self.n_perm)
+                self.drift_localized.append((len(self.shape),) + mmd_result)
+                return mmd_result
         # No (new) drift localized
         return 1
 
@@ -104,7 +103,7 @@ DEBUG Class to compare the Kernels and the shape values.
 """
 
 
-class ShapeNative(shape):
+class stat_native(shape):
 
     def __init__(self, data, f):
         m, _ = data.shape
@@ -115,6 +114,7 @@ class ShapeNative(shape):
         self.data = data  # saved data points
 
         self.update_k()
+        self.stat = [self.w_i(self.i).T @ self.K @ self.w_i(self.i)]
 
     def update_k(self):
         # fill the initial values of the kernel matrix
@@ -126,4 +126,6 @@ class ShapeNative(shape):
         self.data[self.i] = x
         self.update_k()
         self.i = (self.i + 1) % self.m
-        return self.w_i(self.i).T @ self.K @ self.w_i(self.i)
+        res = self.w_i(self.i).T @ self.K @ self.w_i(self.i)
+        self.stat.append(res)
+        return res
