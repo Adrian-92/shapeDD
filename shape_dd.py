@@ -5,11 +5,13 @@ from sklearn.metrics.pairwise import pairwise_kernels as apply_kernel
 
 class shape_dd:
     def __init__(self, data, w_size, n_perm):
-        self.data = data # full data set
-        self.w_size = w_size # window size
-        self.n_perm = n_perm # number of permutations
-        self.stat = [] # stat value
-        self.drift_detected = [] # tuple of results
+        sigma = 1
+        self.gamma = 1 / (2 * sigma ** 2)
+        self.data = data  # full data set
+        self.w_size = w_size  # window size
+        self.n_perm = n_perm  # number of permutations
+        self.stat = []  # stat value
+        self.drift_detected = []  # tuple of results
         self.shape()
 
         # dataset X, l1 = first window size, l2 = second window size, n_perm = number of permutations
@@ -17,7 +19,8 @@ class shape_dd:
     def shape(self):
         w = np.array(self.w_size * [1.] + self.w_size * [-1.]) / float(self.w_size)
         n_size = self.data.shape[0]
-        kernel_desc = apply_kernel(self.data, metric="rbf")
+
+        kernel_desc = apply_kernel(self.data, metric="rbf", gamma=self.gamma)
         W = np.zeros((n_size - 2 * self.w_size, n_size))
 
         for i in range(n_size - 2 * self.w_size):
