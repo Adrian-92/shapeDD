@@ -27,6 +27,7 @@ class shape:
             w[:end_index] = -1
 
         return w
+
     def update(self, x):
         raise NotImplementedError("Should be overwritten by the subclass!")
 
@@ -67,7 +68,6 @@ class shape_online(shape):
         self.result = self.kernel_desc @ self.w_i(self.i)
         self.stat.append(self.w_i(self.i) @ self.result)
 
-
     def _init_kernel_matrix(self):
         # fill the initial values of the kernel matrix
         for i in range(self.m):
@@ -77,47 +77,66 @@ class shape_online(shape):
                 self.kernel_desc[i, j] = kernel_val
                 self.kernel_desc[j, i] = kernel_val
 
-
     # add new data point. Relevant for the online-scenario
     def update(self, x):
+
+        # calculate indices
         new_i = (self.i + 1) % self.m
         max_index = (self.i + self.m // 2) % self.m  # calculate, where the last "-1" w_i is located
 
         # update as described in step 1.1 is executed, avoid adding self.K[self.i,:] twice, which would dbe subtracted in the next update step
         self.result = self.result + self.kernel_desc[self.i, :] - 2 * self.kernel_desc[max_index, :]
 
-        # calculate new kernel matrix
         # self.i is the oldest value, they need to be updated
         self.data[self.i] = x
+
+        # compute new kernel values
         for j in range(self.m):
-            self.kernel_desc[self.i, j] = self.kernel_func(self.data[self.i], self.data[j])
-        self.kernel_desc[:, self.i] = self.kernel_desc[self.i, :]
+            kernel_val = self.kernel_func(self.data[self.i], self.data[j])
+            # enforce symmetry
+            self.kernel_desc[self.i, j] = kernel_val
+            self.kernel_desc[j, self.i] = kernel_val
 
         # Add the new kernel-row to the matrix, as described in 1.2
         self.result += self.kernel_desc[self.i,
-                     :]  # Add M by subtracting the (never added) old kernel value and add the new kernel value
-        self.result[self.i] = self.kernel_desc[self.i, :].T @ self.w_i(new_i)  # recalculate row i
+                       :]  # Add M by subtracting the (never added) old kernel value and add the new kernel value
 
+        # recalculate specific entry
+        w_new = self.w_i(new_i)
+
+        self.result[self.i] = self.kernel_desc[self.i, :].T @ w_new  # recalculate row i
+
+        # update index
         self.i = new_i
-        self.stat.append(self.w_i(self.i).T @ self.result)
+
+        current_stat = w_new @ self.result
+        self.stat.append(current_stat)
+        # OLD self.stat.append(self.w_i(self.i).T @ self.result)
 
         if len(self.stat) < self.m:
             return None
 
-        arr = np.array(self.stat[-self.m:])
-        self.shape.append(self.w_i(self.m // 2) @ arr)
+        recent_stat = np.array(self.stat[-self.m:])
+        w_shape = self.w_i(self.m // 2)
+        shape_value = w_shape.T @ recent_stat
+        self.shape.append(shape_value)
+
         if len(self.shape) < 2:
             return None
 
-        # Test, if shape predicts a drift localization
-        if self.shape[-1] * self.shape[-2] < 0:
-            if self.shape[-1] > 0:
-                mmd_result = mmd(np.concatenate([self.data[self.i:], self.data[:self.i]], axis=0), self.m // 2,
-                                 self.n_perm)
-                self.drift_localized.append((len(self.shape),) + mmd_result)
-                return mmd_result
-        # No (new) drift localized
-        return 1
+        return self._detect_drift()
+
+    def _detect_drift(self):
+        current_shape = self.shape[-1]
+        previous_shape = self.shape[-2]
+
+        if (current_shape * previous_shape) < 0 < current_shape:
+            ordered_data = np.concatenate([self.data[self.i:], self.data[:self.i]], axis=0)
+            mmd_result = mmd(ordered_data, self.m // 2, self.n_perm)
+            self.drift_localized.append((len(self.shape),) + mmd_result)
+            return mmd_result
+        else:
+            return 1
 
 
 """
