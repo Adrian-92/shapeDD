@@ -98,20 +98,17 @@ class shape_online(shape):
             self.kernel_desc[j, self.i] = kernel_val
 
         # Add the new kernel-row to the matrix, as described in 1.2
-        self.result += self.kernel_desc[self.i,
-                       :]  # Add M by subtracting the (never added) old kernel value and add the new kernel value
-
+        # Add M by subtracting the (never added) old kernel value and add the new kernel value
+        self.result += self.kernel_desc[self.i,:]
         # recalculate specific entry
         w_new = self.w_i(new_i)
-
-        self.result[self.i] = self.kernel_desc[self.i, :].T @ w_new  # recalculate row i
+        self.result[self.i] = self.kernel_desc[self.i, :] @ w_new  # recalculate row i
 
         # update index
         self.i = new_i
 
-        current_stat = w_new @ self.result
+        current_stat = w_new.T @ self.result
         self.stat.append(current_stat)
-        # OLD self.stat.append(self.w_i(self.i).T @ self.result)
 
         if len(self.stat) < self.m:
             return None
