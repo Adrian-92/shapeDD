@@ -1,8 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics.pairwise import pairwise_kernels as apply_kernel
-from experimental import shape as shape_online
-from experimental import  shape_dd
+import shape as shape_online
+import shape_dd
 
 
 def compare_online_vs_batch(data, window_size=100, n_perm=1000):
@@ -55,7 +55,7 @@ def simulate_online_shapes(data, window_size, kernel_func, n_perm):
 def detailed_comparison_analysis(data, window_size=100):
 
     print("=" * 80)
-    print("ANALYSE: ONLINE vs BATCH SHAPES")
+    print("ANALYSIS: ONLINE vs BATCH SHAPES")
     print("=" * 80)
 
 
@@ -82,7 +82,7 @@ def detailed_comparison_analysis(data, window_size=100):
     print("\nOnline Kernel Matrix:")
     print(online_kernel)
 
-    print("\n3. STATISTIK-BERECHNUNG VERGLEICH")
+    print("\nComparison")
     print("-" * 40)
 
     batch_shape, online_results = compare_online_vs_batch(data, window_size)
@@ -91,13 +91,13 @@ def detailed_comparison_analysis(data, window_size=100):
     print(f"Online Drifts: {len(online_results['drift_positions'])}")
 
     if batch_shape.drift_detected:
-        print("\nBatch Drift-Positionen:")
-        for drift in batch_shape.drift_detected[:15]:
+        print("\nBatch Drift-Positions:")
+        for drift in batch_shape.drift_detected:
             print(f"  Position {drift[0]}: Shape={drift[1]:.4f}, MMD={drift[2]:.4f}, p-value={drift[3]:.4f}")
 
     if online_results['drift_positions']:
-        print("\nOnline Drift-Positionen:")
-        for drift in online_results['drift_positions'][:15]:
+        print("\nOnline Drift-Positions:")
+        for drift in online_results['drift_positions']:
             pos, (mmd_val, p_val) = drift
             print(f"  Position {pos}: MMD={mmd_val:.4f}, p-value={p_val:.4f}")
 
@@ -106,31 +106,31 @@ def plot_comprehensive_comparison(data, window_size=100):
 
     batch_shape, online_results = compare_online_vs_batch(data, window_size)
 
-    fig, axes = plt.subplots(2, 3, figsize=(18, 12))
+    fig, axes = plt.subplots(1, 3, figsize=(36, 12))
 
     # Plot 1: Batch SHAPES statistics
-    axes[0, 0].plot(range(len(batch_shape.stat)), batch_shape.stat, 'b-', linewidth=2)
-    axes[0, 0].set_title('Batch SHAPES Statistiken')
-    axes[0, 0].set_xlabel('Position')
-    axes[0, 0].set_ylabel('SHAPES Statistik')
-    axes[0, 0].grid(True, alpha=0.3)
+    axes[0].plot(range(len(batch_shape.stat)), batch_shape.stat, 'b-', linewidth=2)
+    axes[0].set_title('Batch SHAPES statistic')
+    axes[0].set_xlabel('Position')
+    axes[0].set_ylabel('SHAPES statistic')
+    axes[0].grid(True, alpha=0.3)
 
     # mark Batch-Drifts
     if batch_shape.drift_detected:
         drift_positions = [d[0] for d in batch_shape.drift_detected]
         drift_values = [batch_shape.stat[d[0]] if d[0] < len(batch_shape.stat) else 0
                         for d in batch_shape.drift_detected]
-        axes[0, 0].scatter(drift_positions, drift_values, c='red', s=100,
+        axes[0].scatter(drift_positions, drift_values, c='red', s=100,
                            marker='x', label='Detected Drifts', linewidth=3)
-        axes[0, 0].legend()
+        axes[0].legend()
 
     # Plot 2: Online SHAPES statistics
     if online_results['stats']:
-        axes[0, 1].plot(online_results['positions'], online_results['stats'], 'g-', linewidth=2)
-        axes[0, 1].set_title('Online SHAPES Statistiken')
-        axes[0, 1].set_xlabel('Position')
-        axes[0, 1].set_ylabel('SHAPES Statistik')
-        axes[0, 1].grid(True, alpha=0.3)
+        axes[1].plot(online_results['positions'], online_results['stats'], 'g-', linewidth=2)
+        axes[1].set_title('Online SHAPES statistic')
+        axes[1].set_xlabel('Position')
+        axes[1].set_ylabel('SHAPES statistic')
+        axes[1].grid(True, alpha=0.3)
 
         # mark online drift
         if online_results['drift_positions']:
@@ -144,47 +144,46 @@ def plot_comprehensive_comparison(data, window_size=100):
                 else:
                     drift_stats.append(0)
 
-            axes[0, 1].scatter(drift_pos, drift_stats, c='red', s=100,
+            axes[1].scatter(drift_pos, drift_stats, c='red', s=100,
                                marker='x', label='Detected Drifts', linewidth=3)
-            axes[0, 1].legend()
+            axes[1].legend()
 
     # Plot 3: direct statistics comparison
     if online_results['stats'] and len(batch_shape.stat) > 0:
         # find matching areas
         min_len = min(len(batch_shape.stat), len(online_results['stats']))
-        start_offset = 2 * window_size  # window offset
 
-        if len(batch_shape.stat) > start_offset:
-            batch_subset = batch_shape.stat[start_offset:start_offset + min_len]
-            online_subset = online_results['stats'][:len(batch_subset)]
 
-            x_range = range(start_offset, start_offset + len(batch_subset))
-            axes[0, 2].plot(x_range, batch_subset, 'b-', label='Batch', linewidth=2, alpha=0.7)
-            axes[0, 2].plot(x_range, online_subset, 'g--', label='Online', linewidth=2, alpha=0.7)
-            axes[0, 2].set_title('Statistik-Vergleich (Überlappend)')
-            axes[0, 2].set_xlabel('Position')
-            axes[0, 2].set_ylabel('SHAPES Statistik')
-            axes[0, 2].legend()
-            axes[0, 2].grid(True, alpha=0.3)
+        batch_subset = batch_shape.stat[:min_len]
+        online_subset = online_results['stats'][:len(batch_subset)]
+
+        x_range = range(0, len(batch_subset))
+        axes[2].plot(x_range, batch_subset, 'b-', label='Batch', linewidth=2, alpha=0.7)
+        axes[2].plot(x_range, online_subset, 'g--', label='Online', linewidth=2, alpha=0.7)
+        axes[2].set_title('Statistic comparison (overlapping)')
+        axes[2].set_xlabel('Position')
+        axes[2].set_ylabel('SHAPES statistic')
+        axes[2].legend()
+        axes[2].grid(True, alpha=0.3)
 
     plt.tight_layout()
     plt.show()
 
     print("\n" + "=" * 80)
-    print("VERGLEICHSZUSAMMENFASSUNG")
+    print("SUMMARY")
     print("=" * 80)
-    print(f"Datensatz Größe: {len(data)}")
+    print(f"Size of dataset: {len(data)}")
     print(f"Window Size: {window_size}")
-    print(f"Batch detektierte Drifts: {len(batch_shape.drift_detected)}")
-    print(f"Online detektierte Drifts: {len(online_results['drift_positions'])}")
+    print(f"Batch detected Drifts: {len(batch_shape.drift_detected)}")
+    print(f"Online detected Drifts: {len(online_results['drift_positions'])}")
 
     if batch_shape.drift_detected and online_results['drift_positions']:
         batch_pos = set(d[0] for d in batch_shape.drift_detected)
         online_pos = set(d[0] for d in online_results['drift_positions'])
         overlap = batch_pos.intersection(online_pos)
-        print(f"Übereinstimmende Drift-Positionen: {len(overlap)}")
-        print(f"Nur Batch: {len(batch_pos - online_pos)}")
-        print(f"Nur Online: {len(online_pos - batch_pos)}")
+        print(f"Consistent Drift-Positionen: {len(overlap)}")
+        print(f"Only Batch: {len(batch_pos - online_pos)}")
+        print(f"Only Online: {len(online_pos - batch_pos)}")
 
 
 
@@ -203,8 +202,8 @@ if __name__ == "__main__":
     test_data = np.vstack([seg1, seg2, seg3])
 
 
-    print("Führe detaillierte Analyse durch...")
+    print("checking detectors...")
     detailed_comparison_analysis(test_data, window_size=100)
 
-    print("\nErstelle Vergleichsplots...")
+    print("\nmaking plots...")
     plot_comprehensive_comparison(test_data, window_size=100)

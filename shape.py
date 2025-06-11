@@ -17,6 +17,7 @@ class shape:
         """
         # size of first batch determines window size
         window_size = self.m
+
         w = np.ones(window_size)
         max_index = i + window_size // 2
         if max_index >= window_size:
@@ -24,6 +25,7 @@ class shape:
             w[:max_index - window_size] = -1
         else:
             w[i:max_index] = -1
+
         return w
 
     def update(self, x):
@@ -72,7 +74,6 @@ class shape_online(shape):
         self.prod = self.kernel_desc @ self.w_i(self.i)
         self.stat.append(self.w_i(self.i) @ self.prod)
 
-
     # add new data point. Relevant for the online-scenario
     def update(self, x):
         window_size = self.m
@@ -101,22 +102,20 @@ class shape_online(shape):
 
         self.i = new_i
 
-        current_stat = self.w_i(self.i).T @ self.prod
+        current_stat = (self.w_i(self.i).T @ self.prod)
         self.stat.append(current_stat)
 
         if len(self.stat) < window_size:
             return None
 
-        recent_stat = np.array(self.stat[-window_size:])
+        recent_stat = (np.array(self.stat[-window_size:]))
         w_shape = self.w_i(self.m // 2)
         shape_value = w_shape.T @ recent_stat
-
 
         self.shape.append(shape_value)
 
         if len(self.shape) < 2:
             return None
-
         return self._detect_drift()
 
     def _detect_drift(self):
@@ -124,8 +123,8 @@ class shape_online(shape):
 
         current_shape = self.shape[-1]
         previous_shape = self.shape[-2]
-
-        if (current_shape * previous_shape) < 0 < current_shape:
+        shape_prime = current_shape * previous_shape
+        if shape_prime < 0 < current_shape:
             ordered_data = np.concatenate([self.data[self.i:], self.data[:self.i]], axis=0)
             mmd_result = mmd(ordered_data, window_size // 2, self.n_perm)
             self.drift_localized.append((len(self.shape),) + mmd_result)

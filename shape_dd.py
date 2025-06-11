@@ -27,7 +27,7 @@ class shape_dd:
         self.stat = np.einsum('ij,ij->i', np.dot(W, kernel_desc), W)
         shape = np.convolve(self.stat, w)
         shape_prime = shape[1:] * shape[:-1]
-
+        self.stat = list(map(lambda x: x*(self.w_size*self.w_size), self.stat)) #  factor is window size squared just for the plot to match the other, need a better solution
         res = np.zeros((n_size, 3))
 
         res[:, 2] = 1
