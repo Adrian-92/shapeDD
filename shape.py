@@ -15,17 +15,15 @@ class shape:
         w : numpy array
             Weight vector of length m
         """
-        w = np.ones(self.m)
-        half_window = self.m // 2
-        start_index = i
-        end_index = (i + half_window) % self.m
-
-        if start_index <= end_index:
-            w[start_index:end_index] = -1
+        # size of first batch determines window size
+        window_size = self.m
+        w = np.ones(window_size)
+        max_index = i + window_size // 2
+        if max_index >= window_size:
+            w[i:] = -1
+            w[:max_index - window_size] = -1
         else:
-            w[start_index:] = -1
-            w[:end_index] = -1
-
+            w[i:max_index] = -1
         return w
 
     def update(self, x):
@@ -47,12 +45,12 @@ class shape_online(shape):
             Number of permutations for independence test
         """
 
-        m = data.shape[0]
+        m, _ = data.shape
         self.m = m  # number of saves elements
         self.kernel_desc = np.zeros((m, m))  # kernel matrix
         self.n_perm = n_perm  # Number of Permutations for the independence test
 
-        self.result = np.zeros(m)  # K @ w_i
+        self.prod = np.zeros(m)  # K @ w_i
         self.kernel_func = f  # kernel function
         self.i = 0  # index of the oldest element
         self.data = data  # saved data points
@@ -63,12 +61,6 @@ class shape_online(shape):
         self.drift_localized = []  # Saved points (according to number of data point, including the initial)
         # contains position, mmd-value and p-value of possible location
 
-        self._init_kernel_matrix()
-
-        self.result = self.kernel_desc @ self.w_i(self.i)
-        self.stat.append(self.w_i(self.i) @ self.result)
-
-    def _init_kernel_matrix(self):
         # fill the initial values of the kernel matrix
         for i in range(self.m):
             for j in range(self.m):
@@ -77,21 +69,25 @@ class shape_online(shape):
                 self.kernel_desc[i, j] = kernel_val
                 self.kernel_desc[j, i] = kernel_val
 
+        self.prod = self.kernel_desc @ self.w_i(self.i)
+        self.stat.append(self.w_i(self.i) @ self.prod)
+
+
     # add new data point. Relevant for the online-scenario
     def update(self, x):
-
+        window_size = self.m
         # calculate indices
-        new_i = (self.i + 1) % self.m
-        max_index = (self.i + self.m // 2) % self.m  # calculate, where the last "-1" w_i is located
+        new_i = (self.i + 1) % window_size
+        max_index = (self.i + window_size // 2) % window_size  # calculate, where the last "-1" w_i is located
 
         # update as described in step 1.1 is executed, avoid adding self.K[self.i,:] twice, which would dbe subtracted in the next update step
-        self.result = self.result + self.kernel_desc[self.i, :] - 2 * self.kernel_desc[max_index, :]
+        self.prod = self.prod + self.kernel_desc[self.i, :] - 2 * self.kernel_desc[max_index, :]
 
         # self.i is the oldest value, they need to be updated
         self.data[self.i] = x
 
         # compute new kernel values
-        for j in range(self.m):
+        for j in range(window_size):
             kernel_val = self.kernel_func(self.data[self.i], self.data[j])
             # enforce symmetry
             self.kernel_desc[self.i, j] = kernel_val
@@ -99,23 +95,23 @@ class shape_online(shape):
 
         # Add the new kernel-row to the matrix, as described in 1.2
         # Add M by subtracting the (never added) old kernel value and add the new kernel value
-        self.result += self.kernel_desc[self.i,:]
-        # recalculate specific entry
-        w_new = self.w_i(new_i)
-        self.result[self.i] = self.kernel_desc[self.i, :] @ w_new  # recalculate row i
+        self.prod += self.kernel_desc[self.i,
+                     :]  # Add M by subtracting the (never added) old kernel value and add the new kernel value
+        self.prod[self.i] = self.kernel_desc[self.i, :].T @ self.w_i(new_i)  # recalculate row i
 
-        # update index
         self.i = new_i
 
-        current_stat = w_new.T @ self.result
+        current_stat = self.w_i(self.i).T @ self.prod
         self.stat.append(current_stat)
 
-        if len(self.stat) < self.m:
+        if len(self.stat) < window_size:
             return None
 
-        recent_stat = np.array(self.stat[-self.m:])
+        recent_stat = np.array(self.stat[-window_size:])
         w_shape = self.w_i(self.m // 2)
         shape_value = w_shape.T @ recent_stat
+
+
         self.shape.append(shape_value)
 
         if len(self.shape) < 2:
@@ -124,12 +120,14 @@ class shape_online(shape):
         return self._detect_drift()
 
     def _detect_drift(self):
+        window_size = self.m
+
         current_shape = self.shape[-1]
         previous_shape = self.shape[-2]
 
         if (current_shape * previous_shape) < 0 < current_shape:
             ordered_data = np.concatenate([self.data[self.i:], self.data[:self.i]], axis=0)
-            mmd_result = mmd(ordered_data, self.m // 2, self.n_perm)
+            mmd_result = mmd(ordered_data, window_size // 2, self.n_perm)
             self.drift_localized.append((len(self.shape),) + mmd_result)
             return mmd_result
         else:
