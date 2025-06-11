@@ -2,7 +2,6 @@ import numpy as np
 from sklearn.metrics.pairwise import pairwise_kernels as apply_kernel
 
 
-# copied from fhinder
 def gen_window_matrix(l1, l2, n_perm, cache=dict()):
     if (l1, l2, n_perm) not in cache.keys():
         w = np.array(l1 * [1. / l1] + (l2) * [-1. / (l2)])
