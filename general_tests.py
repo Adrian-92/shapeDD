@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics.pairwise import pairwise_kernels as apply_kernel
-import shape as shape_online
+import shape_online as shape_online
 import shape_dd
 
 
