@@ -15,7 +15,7 @@ def compare_online_vs_batch(data, window_size=100, n_perm=1000):
         return np.exp(-gamma * np.linalg.norm(x - y) ** 2)
 
     # Batch-Version
-    batch_shape = shape_dd.shape_dd(data, window_size, n_perm)
+    batch_shape = shape_dd.ShapeDD(data, window_size, n_perm)
 
     # Online-Version
     online_results = simulate_online_shapes(data, window_size, rbf_kernel, n_perm)

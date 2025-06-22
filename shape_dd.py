@@ -2,8 +2,9 @@ import numpy as np
 from utilities import mmd
 from sklearn.metrics.pairwise import pairwise_kernels as apply_kernel
 
+
 # tested against original version, this one is correct
-class shape_dd:
+class ShapeDD:
     def __init__(self, data, w_size, n_perm):
         self.data = data  # full data set
         self.w_size = w_size  # window size
@@ -27,7 +28,8 @@ class shape_dd:
         self.stat = np.einsum('ij,ij->i', np.dot(W, kernel_desc), W)
         shape = np.convolve(self.stat, w)
         shape_prime = shape[1:] * shape[:-1]
-        self.stat = list(map(lambda x: x*(self.w_size*self.w_size), self.stat)) #  factor is window size squared just for the plot to match the other, need a better solution
+        self.stat = list(map(lambda x: x * (self.w_size * self.w_size),
+                             self.stat))  # factor is window size squared just for the plot
         res = np.zeros((n_size, 3))
 
         res[:, 2] = 1
