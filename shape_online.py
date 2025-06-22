@@ -2,7 +2,7 @@ import numpy as np
 from utilities import mmd
 
 
-class shape:
+class Shape:
     def w_i(self, i: int):
         """
         Parameters:
@@ -31,19 +31,20 @@ class shape:
     def update(self, x):
         raise NotImplementedError("Should be overwritten by the subclass!")
 
+
 class ForgettingList(list):
     def __init__(self, max_length):
         super(ForgettingList, self).__init__()
         self.max_length = max_length
+
     def append(self, item):
         super(ForgettingList, self).append(item)
         if len(self) > self.max_length:
             # l = l[-max_length:]
             del self[:-self.max_length]
-    
-    
 
-class shape_online(shape):
+
+class ShapeOnline(Shape):
     def __init__(self, data, f, n_perm=1000):
         """
         Initialize the online shape instance
@@ -67,7 +68,7 @@ class shape_online(shape):
         self.kernel_func = f  # kernel function
         self.i = 0  # index of the oldest element
         self.data = data  # saved data points
-        self.old_data = ForgettingList(m + m//2)
+        self.old_data = ForgettingList(m + m // 2)
 
         # statistical tracking of data
         self.stat = []
@@ -125,7 +126,7 @@ class shape_online(shape):
         recent_stat = (np.array(self.stat[-window_size:]))
         w_shape = self.w_i(self.m // 2)
         shape_value = w_shape.T @ recent_stat
-        #shape_value = recent_stat[-1]
+        # shape_value = recent_stat[-1]
 
         self.shape.append(shape_value)
 
@@ -152,10 +153,10 @@ DEBUG Class to compare the Kernels and the shape values.
 """
 
 
-class stat_native(shape):
+class StatNative(Shape):
 
     def __init__(self, data, f):
-        m, _ = data.shape
+        m, _ = data.Shape
         self.m = m  # number of saves elements
         self.K = np.zeros((m, m))  # kernel matrix
         self.f = f  # kernel function

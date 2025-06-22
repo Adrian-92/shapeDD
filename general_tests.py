@@ -34,7 +34,7 @@ def simulate_online_shapes(data, window_size, kernel_func, n_perm):
         'positions': []
     }
 
-    online_shape = shape_online.shape_online(data[:m].copy(), kernel_func, n_perm)
+    online_shape = shape_online.ShapeOnline(data[:m].copy(), kernel_func, n_perm)
     results['stats'].append(online_shape.stat[-1])
     results['positions'].append(m - 1)
 
@@ -46,18 +46,17 @@ def simulate_online_shapes(data, window_size, kernel_func, n_perm):
         if len(online_shape.shape) > 0:
             results['shape_values'].append(online_shape.shape[-1])
 
+        # shift position by window size to get the correct detected position
         if drift_result is not None and drift_result != 1:
-            results['drift_positions'].append((i-m, drift_result))
+            results['drift_positions'].append((i - m, drift_result))
 
     return results
 
 
 def detailed_comparison_analysis(data, window_size=100):
-
     print("=" * 80)
     print("ANALYSIS: ONLINE vs BATCH SHAPES")
     print("=" * 80)
-
 
     test_data = data[:4]
 
@@ -103,7 +102,6 @@ def detailed_comparison_analysis(data, window_size=100):
 
 
 def plot_comprehensive_comparison(data, window_size=100):
-
     batch_shape, online_results = compare_online_vs_batch(data, window_size)
 
     fig, axes = plt.subplots(1, 3, figsize=(36, 12))
@@ -117,11 +115,12 @@ def plot_comprehensive_comparison(data, window_size=100):
 
     # mark Batch-Drifts
     if batch_shape.drift_detected:
-        drift_positions = [d[0] for d in batch_shape.drift_detected]
-        drift_values = [batch_shape.stat[d[0]] if d[0] < len(batch_shape.stat) else 0
+        # shift position of markers by window size to get correct result
+        drift_positions = [d[0] - window_size for d in batch_shape.drift_detected]
+        drift_values = [batch_shape.stat[d[0] - window_size] if d[0] < len(batch_shape.stat) else 0
                         for d in batch_shape.drift_detected]
         axes[0].scatter(drift_positions, drift_values, c='red', s=100,
-                           marker='x', label='Detected Drifts', linewidth=3)
+                        marker='x', label='Detected Drifts', linewidth=3)
         axes[0].legend()
 
     # Plot 2: Online SHAPES statistics
@@ -134,7 +133,8 @@ def plot_comprehensive_comparison(data, window_size=100):
 
         # mark online drift
         if online_results['drift_positions']:
-            drift_pos = [d[0] for d in online_results['drift_positions']]
+            # shift position of markers by window size to get correct result
+            drift_pos = [d[0] + window_size for d in online_results['drift_positions']]
             # find stat values
             drift_stats = []
             for pos in drift_pos:
@@ -145,14 +145,13 @@ def plot_comprehensive_comparison(data, window_size=100):
                     drift_stats.append(0)
 
             axes[1].scatter(drift_pos, drift_stats, c='red', s=100,
-                               marker='x', label='Detected Drifts', linewidth=3)
+                            marker='x', label='Detected Drifts', linewidth=3)
             axes[1].legend()
 
     # Plot 3: direct statistics comparison
     if online_results['stats'] and len(batch_shape.stat) > 0:
         # find matching areas
         min_len = min(len(batch_shape.stat), len(online_results['stats']))
-
 
         batch_subset = batch_shape.stat[:min_len]
         online_subset = online_results['stats'][:len(batch_subset)]
@@ -186,21 +185,19 @@ def plot_comprehensive_comparison(data, window_size=100):
         print(f"Only Online: {len(online_pos - batch_pos)}")
 
 
-
 if __name__ == "__main__":
     # test data
     np.random.seed(69)
 
     # Segment 1: normal distribution
-    seg1 = np.random.normal(0, 1, (1000, 2))
+    seg1 = np.random.normal(0, 1, (500, 2))
 
     # Segment 2: data with drift
-    seg2 = np.random.normal(3, 1, (1000, 2))
+    seg2 = np.random.normal(3, 1, (500, 2))
 
-    seg3 = np.random.normal(0, 2, (1000, 2))
+    seg3 = np.random.normal(0, 2, (500, 2))
 
     test_data = np.vstack([seg1, seg2, seg3])
-
 
     print("checking detectors...")
     detailed_comparison_analysis(test_data, window_size=100)
