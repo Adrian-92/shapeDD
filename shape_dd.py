@@ -3,7 +3,6 @@ from utilities import mmd
 from sklearn.metrics.pairwise import pairwise_kernels as apply_kernel
 
 
-# tested against original version, this one is correct
 class ShapeDD:
     def __init__(self, data, w_size, n_perm):
         self.data = data  # full data set

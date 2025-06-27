@@ -167,7 +167,7 @@ def plot_comprehensive_comparison(data, window_size=100):
 
 if __name__ == "__main__":
     # test data
-    np.random.seed(42069)
+    np.random.seed(69)
 
     # Segment 1: normal distribution
     seg1 = np.random.normal(0, 1, (500, 2))

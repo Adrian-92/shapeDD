@@ -105,7 +105,7 @@ class ShapeOnline(Shape):
         new_i = (self.i + 1) % self.m
         max_index = (self.i + self.m // 2) % self.m  # calculate, where the last "-1" w_i is located
 
-        # update as described in step 1.1 is executed, avoid adding self.K[self.i,:] twice, which would dbe subtracted in the next update step
+        # update is executed, avoid adding self.K[self.i,:] twice, which would dbe subtracted in the next update step
         self.prod = self.prod + self.kernel_desc[self.i, :] - 2 * self.kernel_desc[max_index, :]
 
         # self.i is the oldest value, they need to be updated
@@ -160,7 +160,6 @@ class ShapeOnline(Shape):
 """
 DEBUG Class to compare the Kernels and the shape values.
 """
-
 
 class StatNative(Shape):
 
