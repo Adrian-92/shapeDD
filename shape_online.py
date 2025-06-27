@@ -1,4 +1,5 @@
 import numpy as np
+
 from utilities import mmd
 
 
@@ -45,7 +46,7 @@ class ForgettingList(list):
 
 
 class ShapeOnline(Shape):
-    def __init__(self, data, f, n_perm=1000):
+    def __init__(self, window_size, f, n_perm=1000):
         """
         Initialize the online shape instance
 
@@ -59,26 +60,24 @@ class ShapeOnline(Shape):
             Number of permutations for independence test
         """
 
-        m, _ = data.shape
-        self.m = m  # number of saves elements
-        self.kernel_desc = np.zeros((m, m))  # kernel matrix
+
+        self.m = 2 * window_size  # number of saves elements (equals to 2 times window size)
+        self.kernel_desc = np.zeros((self.m, self.m))  # kernel matrix
         self.n_perm = n_perm  # Number of Permutations for the independence test
 
-        self.prod = np.zeros(m)  # K @ w_i
+        self.prod = np.zeros(self.m)  # K @ w_i
         self.kernel_func = f  # kernel function
         self.i = 0  # index of the oldest element
-        self.data = data  # saved data points
-        self.old_data = ForgettingList(m + m // 2)
-
+        self.data = []  # saved data points
+        self.old_data = ForgettingList(self.m + self.m // 2)
         # statistical tracking of data
         self.stat = []
         self.shape = []
         self.drift_localized = []  # Saved points (according to number of data point, including the initial)
         # contains position, mmd-value and p-value of possible location
 
-        # fill the initial values of the kernel matrix
+    def _init_kernel(self):
         for i in range(self.m):
-            self.old_data.append(data[i])
             for j in range(self.m):
                 kernel_val = self.kernel_func(self.data[i], self.data[j])
                 # enforce symmetry
@@ -91,10 +90,20 @@ class ShapeOnline(Shape):
     # add new data point. Relevant for the online-scenario
     def update(self, x):
         self.old_data.append(x)
-        window_size = self.m
+        # need at least n data points to work
+        if len(self.old_data) < self.m:
+            self.data.append(x)
+            return
+
+        # fill the initial values of the kernel matrix
+        if len(self.old_data) == self.m:
+           self.data.append(x)
+           self._init_kernel()
+
+
         # calculate indices
-        new_i = (self.i + 1) % window_size
-        max_index = (self.i + window_size // 2) % window_size  # calculate, where the last "-1" w_i is located
+        new_i = (self.i + 1) % self.m
+        max_index = (self.i + self.m // 2) % self.m  # calculate, where the last "-1" w_i is located
 
         # update as described in step 1.1 is executed, avoid adding self.K[self.i,:] twice, which would dbe subtracted in the next update step
         self.prod = self.prod + self.kernel_desc[self.i, :] - 2 * self.kernel_desc[max_index, :]
@@ -103,7 +112,7 @@ class ShapeOnline(Shape):
         self.data[self.i] = x
 
         # compute new kernel values
-        for j in range(window_size):
+        for j in range(self.m):
             kernel_val = self.kernel_func(self.data[self.i], self.data[j])
             # enforce symmetry
             self.kernel_desc[self.i, j] = kernel_val
@@ -120,10 +129,10 @@ class ShapeOnline(Shape):
         current_stat = (self.w_i(self.i).T @ self.prod)
         self.stat.append(current_stat)
 
-        if len(self.stat) < window_size:
+        if len(self.stat) < self.m:
             return None
 
-        recent_stat = (np.array(self.stat[-window_size:]))
+        recent_stat = (np.array(self.stat[-self.m:]))
         w_shape = self.w_i(self.m // 2)
         shape_value = w_shape.T @ recent_stat
         # shape_value = recent_stat[-1]

@@ -46,4 +46,6 @@ class ShapeDD:
                 a, b = max(0, pos - int(self.w_size / 2)), min(n_size, pos + int(self.w_size / 2))
                 res[pos, 1:] = mmd(self.data[a:b], pos - a, self.n_perm)
                 self.drift_detected.append((pos,) + tuple(res[pos]))
+        # last position is removed, because drift is detected, when data set "stops" and is wrongly detected as drift
+        del self.drift_detected[-1]
         return res
