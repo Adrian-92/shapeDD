@@ -3,6 +3,11 @@ import numpy as np
 from utilities import mmd
 
 
+# standard kernel function
+def _rbf_kernel(x, y, sigma=1.0):
+    gamma = 1 / (2 * sigma ** 2)
+    return np.exp(-gamma * np.linalg.norm(x - y) ** 2)
+
 class Shape:
     def w_i(self, i: int):
         """
@@ -45,8 +50,10 @@ class ForgettingList(list):
             del self[:-self.max_length]
 
 
+
+
 class ShapeOnline(Shape):
-    def __init__(self, window_size, f, n_perm=1000):
+    def __init__(self, window_size, *args):
         """
         Initialize the online shape instance
 
@@ -60,21 +67,37 @@ class ShapeOnline(Shape):
             Number of permutations for independence test
         """
 
+        # default parameters
+        self.kernel_func = _rbf_kernel  # kernel function
+        self.n_perm = 1000  # Number of Permutations for the independence test
+
+        if len(args) == 1:
+            if callable(args[0]):
+                self.kernel_func = args[0]
+            elif isinstance(args[0], (int, float)):
+                self.n_perm = args[0]
+        elif len(args) == 2:
+            if callable(args[0]):
+                self.kernel_func , self.n_perm = args
+
 
         self.m = 2 * window_size  # number of saves elements (equals to 2 times window size)
         self.kernel_desc = np.zeros((self.m, self.m))  # kernel matrix
-        self.n_perm = n_perm  # Number of Permutations for the independence test
+
 
         self.prod = np.zeros(self.m)  # K @ w_i
-        self.kernel_func = f  # kernel function
+
+
+
         self.i = 0  # index of the oldest element
         self.data = []  # saved data points
         self.old_data = ForgettingList(self.m + self.m // 2)
         # statistical tracking of data
         self.stat = []
         self.shape = []
-        self.drift_localized = []  # Saved points (according to number of data point, including the initial)
-        # contains position, mmd-value and p-value of possible location
+        self._last_drift_info = None
+        self._drift_detected = False
+
 
     def _init_kernel(self):
         for i in range(self.m):
@@ -86,6 +109,27 @@ class ShapeOnline(Shape):
 
         self.prod = self.kernel_desc @ self.w_i(self.i)
         self.stat.append(self.w_i(self.i) @ self.prod)
+
+    @property
+    def drift_detected(self):
+        """
+        Check if drift was detected and reset flag
+
+        Returns:
+        --------
+        bool : True if drift was detected since last check
+        """
+        if self._drift_detected:
+            self._drift_detected = False
+            return True
+        else:
+            return False
+
+    def get_last_drift_info(self):
+        if self._last_drift_info is not None:
+            return self._last_drift_info
+        else:
+            return None
 
     # add new data point. Relevant for the online-scenario
     def update(self, x):
@@ -135,7 +179,7 @@ class ShapeOnline(Shape):
         recent_stat = (np.array(self.stat[-self.m:]))
         w_shape = self.w_i(self.m // 2)
         shape_value = w_shape.T @ recent_stat
-        # shape_value = recent_stat[-1]
+
 
         self.shape.append(shape_value)
 
@@ -151,7 +195,8 @@ class ShapeOnline(Shape):
         shape_prime = current_shape * previous_shape
         if shape_prime < 0 < current_shape:
             mmd_result = mmd(self.old_data[:self.m], window_size // 2, self.n_perm)
-            self.drift_localized.append((len(self.shape),) + mmd_result)
+            self._last_drift_info = mmd_result
+            self._drift_detected = True
             return mmd_result
         else:
             return 1
