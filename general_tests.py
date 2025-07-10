@@ -46,7 +46,7 @@ def simulate_online_shapes(data, window_size, kernel_func, n_perm):
         if len(online_shape.shape) > 0:
             results['shape_values'].append(online_shape.shape[-1])
         # get drift positions
-        if drift_result is not None and drift_result != 1:
+        if online_shape.drift_detected:
             results['drift_positions'].append((i - m, drift_result))
 
     return results
@@ -175,6 +175,7 @@ if __name__ == "__main__":
     # Segment 2: data with drift
     seg2 = np.random.normal(3, 1, (500, 2))
 
+    # Segment 3: another drift
     seg3 = np.random.normal(0, 2, (500, 2))
 
     test_data = np.vstack([seg1, seg2, seg3])
