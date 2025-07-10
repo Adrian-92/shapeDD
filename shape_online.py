@@ -3,7 +3,7 @@ import numpy as np
 from utilities import mmd
 
 
-# standard kernel function
+# default kernel function
 def _rbf_kernel(x, y, sigma=1.0):
     gamma = 1 / (2 * sigma ** 2)
     return np.exp(-gamma * np.linalg.norm(x - y) ** 2)
@@ -126,13 +126,12 @@ class ShapeOnline(Shape):
             return False
 
     def get_last_drift_info(self):
-        if self._last_drift_info is not None:
             return self._last_drift_info
-        else:
-            return None
 
     # add new data point. Relevant for the online-scenario
     def update(self, x):
+        # reset last detected drift
+        self._last_drift_info = None
         self.old_data.append(x)
         # need at least n data points to work
         if len(self.old_data) < self.m:
@@ -200,35 +199,3 @@ class ShapeOnline(Shape):
             return mmd_result
         else:
             return 1
-
-
-"""
-DEBUG Class to compare the Kernels and the shape values.
-"""
-
-class StatNative(Shape):
-
-    def __init__(self, data, f):
-        m, _ = data.Shape
-        self.m = m  # number of saves elements
-        self.K = np.zeros((m, m))  # kernel matrix
-        self.f = f  # kernel function
-        self.i = 0  # index of the oldest element
-        self.data = data  # saved data points
-
-        self.update_k()
-        self.stat = [self.w_i(self.i).T @ self.K @ self.w_i(self.i)]
-
-    def update_k(self):
-        # fill the initial values of the kernel matrix
-        for i in range(self.m):
-            for j in range(self.m):
-                self.K[i, j] = self.f(self.data[i], self.data[j])
-
-    def update(self, x):
-        self.data[self.i] = x
-        self.update_k()
-        self.i = (self.i + 1) % self.m
-        res = self.w_i(self.i).T @ self.K @ self.w_i(self.i)
-        self.stat.append(res)
-        return res
