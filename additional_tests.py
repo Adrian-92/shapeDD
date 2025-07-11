@@ -10,7 +10,7 @@ def rbf_kernel(x, y, sigma=1.0):
 
 
 def test_shape_online():
-    np.random.seed(69)
+    np.random.seed(12345)
 
     # Segment 1: normal distribution
     seg1 = np.random.normal(0, 1, (500, 2))
@@ -41,6 +41,9 @@ def test_shape_online():
     for i, val in enumerate(test_data):
         # note, that you need  at least 2 * window_size datapoints to get any result
         shape.update(val)
+
+        if shape.get_warning_state():
+            print(f"warning at position {i - window_size}")
         if shape.drift_detected:
             drift_result = shape.get_last_drift_info()
             # you need to subtract 2 * window_size to get the right position of data, because of shift of that size

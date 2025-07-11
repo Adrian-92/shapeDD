@@ -8,6 +8,7 @@ def _rbf_kernel(x, y, sigma=1.0):
     gamma = 1 / (2 * sigma ** 2)
     return np.exp(-gamma * np.linalg.norm(x - y) ** 2)
 
+
 class Shape:
     def w_i(self, i: int):
         """
@@ -50,8 +51,6 @@ class ForgettingList(list):
             del self[:-self.max_length]
 
 
-
-
 class ShapeOnline(Shape):
     def __init__(self, window_size, *args):
         """
@@ -78,16 +77,12 @@ class ShapeOnline(Shape):
                 self.n_perm = args[0]
         elif len(args) == 2:
             if callable(args[0]):
-                self.kernel_func , self.n_perm = args
-
+                self.kernel_func, self.n_perm = args
 
         self.m = 2 * window_size  # number of saves elements (equals to 2 times window size)
         self.kernel_desc = np.zeros((self.m, self.m))  # kernel matrix
 
-
         self.prod = np.zeros(self.m)  # K @ w_i
-
-
 
         self.i = 0  # index of the oldest element
         self.data = []  # saved data points
@@ -98,6 +93,8 @@ class ShapeOnline(Shape):
         self._last_drift_info = None
         self._drift_detected = False
 
+        self._warning_state = False
+        self._warning_list = []
 
     def _init_kernel(self):
         for i in range(self.m):
@@ -126,7 +123,54 @@ class ShapeOnline(Shape):
             return False
 
     def get_last_drift_info(self):
-            return self._last_drift_info
+        return self._last_drift_info
+
+    def get_warning_state(self):
+        return self._warning_state
+
+    def _calc_warning_state(self, next_stat, min_list_length=15, min_mon_length=5, quantile_value=0.9):
+
+        """check if given stat values are strictly rising.
+           any strictly rising values are added to _warning_list
+           calculate quantile and check if the next value is bigger than the n-quantile of _warning_list
+           resets by any occurring drift-detection
+           resets if next_stat is not bigger than last_stat
+
+        Parameters:
+        -----------
+        next_stat : float
+            next given stat value
+        min_list_length : int
+            threshold of values in list to give warning. higher values are more accurate, but warnings will occur later
+        min_mon_length : int
+            threshold of values that are strictly rising higher value is more accurate, but it will detect less
+        quantile_value : float
+            chosen quantile of list
+           """
+
+        if not self._warning_list:
+            self._warning_list.append(next_stat)
+            self._warning_state = False
+            return False
+
+        last_stat = self._warning_list[-1]
+
+        if next_stat > last_stat:
+            self._warning_list.append(next_stat)
+            if len(self._warning_list) > min_list_length and len(self._warning_list) > min_mon_length:
+                recent_values = self._warning_list[-min_mon_length:]
+                is_strictly_increasing = all(x < y for x, y in zip(recent_values, recent_values[1:]))
+                quantile = np.quantile(self._warning_list, quantile_value)
+                if next_stat > quantile and is_strictly_increasing:
+                    return True
+
+
+            else:
+                return False
+        else:
+            self._warning_list.clear()
+            self._warning_list.append(next_stat)
+            return False
 
     # add new data point. Relevant for the online-scenario
     def update(self, x):
@@ -140,9 +184,8 @@ class ShapeOnline(Shape):
 
         # fill the initial values of the kernel matrix
         if len(self.old_data) == self.m:
-           self.data.append(x)
-           self._init_kernel()
-
+            self.data.append(x)
+            self._init_kernel()
 
         # calculate indices
         new_i = (self.i + 1) % self.m
@@ -179,8 +222,9 @@ class ShapeOnline(Shape):
         w_shape = self.w_i(self.m // 2)
         shape_value = w_shape.T @ recent_stat
 
-
         self.shape.append(shape_value)
+
+        self._warning_state = self._calc_warning_state(current_stat)
 
         if len(self.shape) < 2:
             return None
@@ -196,6 +240,8 @@ class ShapeOnline(Shape):
             mmd_result = mmd(self.old_data[:self.m], window_size // 2, self.n_perm)
             self._last_drift_info = mmd_result
             self._drift_detected = True
+            self._warning_list.clear()
+            self._warning_state = False
             return mmd_result
         else:
             return 1
