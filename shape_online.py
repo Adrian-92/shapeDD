@@ -150,7 +150,6 @@ class ShapeOnline(Shape):
 
         if not self._warning_list:
             self._warning_list.append(next_stat)
-            self._warning_state = False
             return False
 
         last_stat = self._warning_list[-1]
