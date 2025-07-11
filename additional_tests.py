@@ -43,6 +43,7 @@ def test_shape_online():
         shape.update(val)
 
         if shape.get_warning_state():
+            # you need to subtract window_size to get the right position of data, because of shift of that size
             print(f"warning at position {i - window_size}")
         if shape.drift_detected:
             drift_result = shape.get_last_drift_info()
