@@ -128,7 +128,7 @@ class ShapeOnline(Shape):
     def get_warning_state(self):
         return self._warning_state
 
-    def _calc_warning_state(self, next_stat, min_list_length=15, min_mon_length=5, quantile_value=0.9):
+    def _calc_warning_state(self, next_stat, min_list_length=8, min_mon_length=5, quantile_value=0.9):
 
         """check if given stat values are strictly rising.
            any strictly rising values are added to _warning_list
@@ -141,6 +141,7 @@ class ShapeOnline(Shape):
         next_stat : float
             next given stat value
         min_list_length : int
+            change use this value to make it more generous oder strict in checking
             threshold of values in list to give warning. higher values are more accurate, but warnings will occur later
         min_mon_length : int
             threshold of values that are strictly rising higher value is more accurate, but it will detect less

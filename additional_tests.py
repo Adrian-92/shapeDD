@@ -10,16 +10,16 @@ def rbf_kernel(x, y, sigma=1.0):
 
 
 def test_shape_online():
-    np.random.seed(12345)
+    np.random.seed(50)
 
     # Segment 1: normal distribution
-    seg1 = np.random.normal(0, 1, (500, 2))
+    seg1 = np.random.normal(0, 1, (1000, 2))
 
     # Segment 2: data with drift
-    seg2 = np.random.normal(3, 1, (500, 2))
+    seg2 = np.random.normal(3, 1, (1000, 2))
 
     # Segment 3: another drift
-    seg3 = np.random.normal(0, 2, (500, 2))
+    seg3 = np.random.normal(0, 2, (1000, 2))
 
     test_data = np.vstack([seg1, seg2, seg3])
 
