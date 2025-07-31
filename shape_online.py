@@ -52,18 +52,31 @@ class ForgettingList(list):
 
 
 class ShapeOnline(Shape):
-    def __init__(self, window_size, *args):
+    def __init__(self, window_size=100, *args):
+
         """
         Initialize the online shape instance
 
         Parameters:
         -----------
-        data : numpy 2-D array
-            Shape (m,?) expected
+
+        window_size : int
+        size of the detection window - default value: 100
+
+        args : expects 0 to 2 arguments
+
+        if the first argument is a function it is used as kernel function
+        otherwise it is used as number of permutations
+        if both arguments are provided,
+        the first argument is the kernel function and second argument is the number of permutations
+        if no arguments are provided, default values (rbf_kernel, 1000) are used
+
         f : function
             kernel function
+            default: rbf kernel
         n_perm : int
             Number of permutations for independence test
+            default: 1000
         """
 
         # default parameters
@@ -93,8 +106,12 @@ class ShapeOnline(Shape):
         self._last_drift_info = None
         self._drift_detected = False
 
+        # fallback default values if not set manually: min_list_length=8, error_threshold=1, quantile_value=0.9
+
+        self._warning_parameters = [8, 1, 0.9]
         self._warning_state = False
         self._warning_list = []
+        self._error_count = 0
 
     def _init_kernel(self):
         for i in range(self.m):
@@ -123,18 +140,23 @@ class ShapeOnline(Shape):
             return False
 
     def get_last_drift_info(self):
+        """
+        return the last drift info
+        Returns:
+            tuple :
+            tuple with resulting mmd value and p value
+        """
         return self._last_drift_info
 
-    def get_warning_state(self):
-        return self._warning_state
-
-    def _calc_warning_state(self, next_stat, min_list_length=8, min_mon_length=5, quantile_value=0.9):
-
-        """check if given stat values are strictly rising.
-           any strictly rising values are added to _warning_list
-           calculate quantile and check if the next value is bigger than the n-quantile of _warning_list
-           resets by any occurring drift-detection
-           resets if next_stat is not bigger than last_stat
+    def get_warning_state(self, min_list_length=8, error_threshold=1, quantile_value=0.9):
+        """
+        technically this function used the result of the private calculation function calls
+        check if given stat values are rising.
+        any strictly rising values are added to _warning_list
+        otherwise the error counter increases up to set threshold.
+        calculate quantile and check if the next value is bigger than the n-quantile of _warning_list
+        resets by any occurring drift-detection
+        resets if error_threshold is reached
 
         Parameters:
         -----------
@@ -143,11 +165,34 @@ class ShapeOnline(Shape):
         min_list_length : int
             change use this value to make it more generous oder strict in checking
             threshold of values in list to give warning. higher values are more accurate, but warnings will occur later
-        min_mon_length : int
-            threshold of values that are strictly rising higher value is more accurate, but it will detect less
+        error_threshold : int
+            determines how many errors are allowed before clearing the warning list and resetting
+            use this value careful, higher values make this function highly inaccurate
         quantile_value : float
             chosen quantile of list
-           """
+
+        Returns:
+            bool : True if a drift might be occurring
+
+        """
+
+        self._warning_parameters = [min_list_length, error_threshold, quantile_value]
+        return self._warning_state
+
+    def _calc_warning_state(self, next_stat):
+
+        """
+        this function is private. so no one should see this, right?
+        description of this function is in get_warning_state
+        Parameters:
+        -----------
+        next_stat : float
+            next given stat value
+        """
+
+        min_list_length = self._warning_parameters[0]
+        error_threshold = self._warning_parameters[1]
+        quantile_value = self._warning_parameters[2]
 
         if not self._warning_list:
             self._warning_list.append(next_stat)
@@ -155,25 +200,55 @@ class ShapeOnline(Shape):
 
         last_stat = self._warning_list[-1]
 
-        if next_stat > last_stat:
-            self._warning_list.append(next_stat)
-            if len(self._warning_list) > min_list_length and len(self._warning_list) > min_mon_length:
-                recent_values = self._warning_list[-min_mon_length:]
-                is_strictly_increasing = all(x < y for x, y in zip(recent_values, recent_values[1:]))
-                quantile = np.quantile(self._warning_list, quantile_value)
-                if next_stat > quantile and is_strictly_increasing:
-                    return True
+        self._warning_list.append(next_stat)
 
+        if next_stat < last_stat:
+            self._error_count += 1
 
-            else:
-                return False
-        else:
+        if self._error_count >= error_threshold:
             self._warning_list.clear()
-            self._warning_list.append(next_stat)
+            self._error_count = 0
             return False
+
+        if len(self._warning_list) > min_list_length:
+            quantile = np.quantile(self._warning_list, quantile_value)
+            if next_stat > quantile:
+                return True
+
+        return False
 
     # add new data point. Relevant for the online-scenario
     def update(self, x):
+
+        """
+        Updates the online detector with a new data point and performs drift detection.
+
+        Parameters:
+        -----------
+
+        x : float
+        New data point to process
+
+        Returns:
+        None : If no drift detection is performed (insufficient data or no drift)
+
+        int : 1 if no drift is detected
+
+        tuple : (float, float) if drift is detected
+
+        **Behavior:**
+
+        1. Adds the new data point to the buffer
+
+        2. Initializes the kernel matrix when sufficient data is available (`m` points)
+
+        3. Updates the kernel matrix and statistics for subsequent points
+
+        4. Performs drift detection based on SHAPE value analysis
+
+        5. Returns drift detection results
+        """
+
         # reset last detected drift
         self._last_drift_info = None
         self.old_data.append(x)
