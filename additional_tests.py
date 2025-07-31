@@ -49,7 +49,7 @@ def test_shape_online():
             drift_result = shape.get_last_drift_info()
             # you need to subtract 2 * window_size to get the right position of data, because of shift of that size
             print(
-                f"shape detected at position {i - 2 * window_size}, mmd-test: {drift_result[0]}, p-value: {drift_result[1]}")
+                f"drift detected at position {i - 2 * window_size}, mmd-test: {drift_result[0]}, p-value: {drift_result[1]}")
 
 
 if __name__ == "__main__":
