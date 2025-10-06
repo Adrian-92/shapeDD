@@ -57,12 +57,15 @@ central to distinguishing it from classical machine learning.
 A common question that arises when discussing stream learning is: \"What
 is the training dataset?\"\
 For now the short and unsatisfactory answer is: *There is none*. But
-why?\
+why?
+
 First, it is important to understand that we are not looking at the
 model itself, which acts as a kind of intermediary between the dataset
 and the output, providing results according to its function (e.g.,
-classifying data), but rather at the problem itself.\
-In other words, the focus is on the dataset itself, not the model.\
+classifying data), but rather at the problem itself.
+
+>In other words, the focus is on the dataset itself, not the model.
+
 The data flows in continuously, for example as events or data points and
 is processed almost in real time. This is essentially where the answer
 to the earlier question about the training dataset lies.
@@ -81,7 +84,6 @@ the data is processed.
   <img src="batch_illu.png" alt="Batch Learning Illustration" style="width:45%;">
   <figcaption>Illustrations of stream learning (left) and batch learning (right)</figcaption>
 </figure>
-
 
 These (AI-generated) illustrations depict the basic principles of batch
 learning and stream learning. The underlying algorithms have been highly
@@ -292,7 +294,7 @@ It should be emphasized here that, apart from the reference window(s), no datase
 
 #### 2. Creating a descriptor
 
-he collected data points must be represented in a way that allows them to be processed or compared in subsequent calculations.
+The collected data points must be represented in a way that allows them to be processed or compared in subsequent calculations.
 There are various approaches to this.
 
 Common ones include kernel-based methods or neighborhood-based approaches.
