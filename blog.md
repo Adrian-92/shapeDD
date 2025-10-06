@@ -27,7 +27,7 @@ and trained on a training dataset and then evaluated to determine
 whether the resulting function corresponds to the given problem or
 question.
 <div style="text-align:center;">
-<img src="illustration_batch_learning.png" alt="simplified batch learning process" width="60%" height="auto">
+<img src="images/illustration_batch_learning.png" alt="simplified batch learning process" width="60%" height="auto">
 </div>
 This general approach is used in a wide range of fields (for example in
 well-known LLMs) and has proven to be quite practical. However, there
@@ -46,7 +46,7 @@ In contrast to classical batch learning, the model adapts in real time with each
 </div>
 
 <figure style="text-align:center;">
-  <img id="fig:diagram_sl" src="illustration_stream_learning.png" alt="simplified stream learning process for a new datapoint" width="70%">
+  <img id="fig:diagram_sl" src="images/illustration_stream_learning.png" alt="simplified stream learning process for a new datapoint" width="70%">
   <figcaption>Simplified stream learning process for a new datapoint</figcaption>
 </figure>
 
@@ -80,8 +80,8 @@ the data is processed.
 
 
 <figure id="fig:stream_and_batch" style="text-align:center;">
-  <img src="stream_illus.png" alt="Stream Learning Illustration" style="width:45%; margin-right:5%;">
-  <img src="batch_illu.png" alt="Batch Learning Illustration" style="width:45%;">
+  <img src="images/stream_illus.png" alt="Stream Learning Illustration" style="width:45%; margin-right:5%;">
+  <img src="images/batch_illu.png" alt="Batch Learning Illustration" style="width:45%;">
   <figcaption>Illustrations of stream learning (left) and batch learning (right)</figcaption>
 </figure>
 
@@ -120,7 +120,7 @@ traffic volume is the same.
 In other words, there are different rules that lead to different
 outcomes for the same set of data. (real concept drift)
 <figure style="text-align:center; margin: 1em auto;">
-  <img id="fig:real_drift" src="real_drift.png" alt="example for real concept drift" width="80%">
+  <img id="fig:real_drift" src="images/real_drift.png" alt="example for real concept drift" width="80%">
   <figcaption>Example for real concept drift</figcaption>
 </figure>
 
@@ -131,7 +131,7 @@ remain unchanged. (virtual concept drift)
 In our example, a newly opened bypass route could alter traffic at
 certain intersections.
 <figure style="text-align:center; margin: 1em auto;">
-<img id="fig:virtual_drift" src="virtual_drift_b.png" alt="example for virtual concept drift" width="80%">
+<img id="fig:virtual_drift" src="images/virtual_drift_b.png" alt="example for virtual concept drift" width="80%">
 <figcaption>Example for virtual concept drift</figcaption>
 </figure>
 
@@ -145,7 +145,7 @@ divided into four different categories, as described in detail
 [here](https://arxiv.org/abs/2004.05785).
 
 <div style="text-align:center;">
-<img id="fig:placeholder" src="Concept_drift_types.PNG" alt="Types of concept drift" width="70%">
+<img id="fig:placeholder" src="images/Concept_drift_types.PNG" alt="Types of concept drift" width="70%">
 </div>
 
 # What does this look like in practice?
@@ -168,7 +168,7 @@ alternative routes, or send early warnings to traffic authorities.
 Let us illustrate this example using this classification to make the
 principle clear:
 <figure style="text-align:center; margin: 1em auto;">
-<img id="fig:before_acc" src="cars_before_acc.png" alt="Example traffic volume at an intersection in vehicles per minute">
+<img id="fig:before_acc" src="images/cars_before_acc.png" alt="Example traffic volume at an intersection in vehicles per minute">
 <figcaption>Example traffic volume at an intersection in vehicles per minute</figcaption>
 </figure>
 
@@ -186,7 +186,7 @@ Now, suppose an accident occurs at this intersection, causing traffic to
 change rapidly and bringing it almost to a standstill, as shown in
 figure [8](#fig:after_acc)
 <figure style="text-align:center; margin: 1em auto;">
-<img id="fig:after_acc" src="cars_w_acc.png" alt="Example traffic volume in vehicles per minute, adjusted due to an accident">
+<img id="fig:after_acc" src="images/cars_w_acc.png" alt="Example traffic volume in vehicles per minute, adjusted due to an accident">
 <figcaption>Example traffic volume in vehicles per minute, adjusted due to an accident</figcaption>
 </figure>
 
@@ -286,7 +286,7 @@ The representation can, for example, consist of reference windows and the most r
 If we again consider the accident statistics from our example, this can be illustrated graphically:
 
 <figure style="text-align:center; margin: 1em auto;">
-<img id="fig:window_sample" src="cars_w_window.png" alt="Example reference window of the most recent data points" width="50%">
+<img id="fig:window_sample" src="images/cars_w_window.png" alt="Example reference window of the most recent data points" width="50%">
 <figcaption>Example reference window of the most recent data points</figcaption>
 </figure>
 
