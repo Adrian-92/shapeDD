@@ -7,7 +7,7 @@ appropriately and develop suitable models.
 It is not always entirely clear when to use which method, what
 distinguishes one from another, or in which situations each should be
 applied.\
-One of those methods is stream learning.\
+One of those setups is stream learning.\
 In the following, I would like to explain what stream learning is, how
 it differs from classical batch-based machine learning, and clarify
 common misconceptions.
@@ -26,9 +26,21 @@ In machine learning it is generally assumed that a model is developed
 and trained on a training dataset and then evaluated to determine
 whether the resulting function corresponds to the given problem or
 question.
-<div style="text-align:center;">
+<figure style="text-align:center;">
 <img src="images/illustration_batch_learning.png" alt="simplified batch learning process" width="60%" height="auto">
-</div>
+  <figcaption>simplified batch learning</figcaption>
+</figure>
+
+To clarify this let’s take a closer look at how batch learning setups work in general.
+First, you design a model for a specific task and train it using a training dataset. The trained
+model is then tested with test data to evaluate its performance. If the performance meets your
+expectations, you can deploy the model; otherwise, you need to redesign it and repeat the process.
+
+<figure style="text-align:center;">
+<img src="images/batch_process_diagram.png" alt="batch learning process diagram" width="60%" height="auto">
+  <figcaption>batch learning process diagram</figcaption>
+</figure>
+
 This general approach is used in a wide range of fields (for example in
 well-known LLMs) and has proven to be quite practical. However, there
 are areas of application where a pre-trained model is not sufficient or
@@ -41,8 +53,8 @@ This is exactly where *stream learning* comes in.
 
 # What is stream learning?
 <div style="border:1px solid black; padding:1em; max-width:800px; margin: 0 auto; text-align:left;">
-Stream learning enables machine learning on continuous data streams without a predefined training dataset. 
-In contrast to classical batch learning, the model adapts in real time with each new data point.
+A stream learning setup enables machine learning on continuous data streams without a predefined training dataset. 
+In contrast to classical batch learning setups, the model adapts in real time with each new data point.
 </div>
 
 <figure style="text-align:center;">
@@ -78,6 +90,11 @@ reasons.\
 The key difference, therefore, lies in the learning approach and the way
 the data is processed.
 
+> In stream learning, a continuous flow of data is processed as it arrives, allowing immediate
+response to new data points.
+> 
+> In contrast, batch learning uses a static dataset that the model processes. When changes
+occur, the model must be retrained completely
 
 <figure id="fig:stream_and_batch" style="text-align:center;">
   <img src="images/stream_illus.png" alt="Stream Learning Illustration" style="width:45%; margin-right:5%;">
@@ -112,7 +129,7 @@ reasons.
 Let's take a look at a hypothetical example of an arbitrary intersection
 in a city.
 
-The model has distinguish between high and low traffic volume. It is
+The model has distinguished between high and low traffic volume. It is
 defined that an intersection should be evaluated differently at
 different times (for example, rush hour versus nighttime) even if the
 traffic volume is the same.
@@ -136,9 +153,9 @@ certain intersections.
 </figure>
 
 When a drift occurs, the model must be able to respond accordingly.\
-For a batch model, this would mean that it now has to be completely
+For batch setups, this would mean that it now has to be completely
 retrained and validated, which can be time- and cost-intensive. In
-contrast, for stream-based learning, a new data point is simply taken
+contrast, for stream-based setups, a new data point is simply taken
 into account, and the parameters are adjusted accordingly.\
 Considering the time component of the data, drift can generally be
 divided into four different categories, as described in detail
@@ -240,7 +257,7 @@ A pre-trained model would now need to be retrained after each of these
 changes in order to continue functioning accurately.\
 Here too, as described above, stream learning offers clear advantages.
 
-## Reoccuring drift 
+## Reoccurring drift 
 
 An intersection in front of a shopping center experiences different
 traffic volumes on different days.
@@ -271,54 +288,6 @@ Event-based patterns can also be observed:
 
 A major challenge for a model is recognizing such patterns, especially
 when they occur in combination.
-
-# monitoring 
-
-How can drift be detected?\
-There are numerous methods for detecting drift, which generally follow the same basic pattern:
-
-#### 1. Collecting data
-
-First, it is necessary to collect a minimum amount of data points. The number required naturally 
-depends on the specific problem being considered and the level of accuracy needed.
-The representation can, for example, consist of reference windows and the most recent data point.
-
-If we again consider the accident statistics from our example, this can be illustrated graphically:
-
-<figure style="text-align:center; margin: 1em auto;">
-<img id="fig:window_sample" src="images/cars_w_window.png" alt="Example reference window of the most recent data points" width="50%">
-<figcaption>Example reference window of the most recent data points</figcaption>
-</figure>
-
-It should be emphasized here that, apart from the reference window(s), no dataset is stored within the model.
-
-#### 2. Creating a descriptor
-
-The collected data points must be represented in a way that allows them to be processed or compared in subsequent calculations.
-There are various approaches to this.
-
-Common ones include kernel-based methods or neighborhood-based approaches.
-
-#### 3. Calculating similarity
-
-The goal of this step is to compute a value that represents similarity. 
-To do this, the reference window(s) and the new data point are compared, and their similarity is calculated.
-
-Some well-known examples include MMD (Maximum Mean Discrepancy) or variation norms.
-
-#### 4. Normalization
-
-Typically, these methods involve estimation errors that can be smoothed out through normalization.
-The p-value from statistical tests is often used as a suitable normalization metric.\
-Possible examples of this overall process include ADWIN or shapeDD.\
-All of these steps are discussed and described in detail in [in this
-paper](https://www.frontiersin.org/journals/artificial-intelligence/articles/10.3389/frai.2024.1330257/full).
-
-From this, we can draw the following conclusion:
-
-<div style="border:1px solid black; padding:1em; max-width:800px; margin: 0 auto; text-align:left;">
-The dataset is examined directly, not through a model.
-</div>
 
 # Choosing the right tool
 
